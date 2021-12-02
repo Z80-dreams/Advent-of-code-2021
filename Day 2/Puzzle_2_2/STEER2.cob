@@ -83,8 +83,7 @@
                        PERFORM 300-MOVE-FORWARD
       *
            ELSE
-               DISPLAY "SOMETHING WENT WRONG. HALTING."
-               STOP RUN.
+               PERFORM 999-ERROR-PROCEDURE.
       *
        300-MOVE-FORWARD.
            ADD IR-AMOUNT TO SD-LENGTH-CURRENT
@@ -94,3 +93,7 @@
                            ON SIZE ERROR
                                MOVE 'Y' TO SW-ERROR.
            ADD SD-AIM-DEPTH-C TO SD-DEPTH-CURRENT.
+      *S
+       999-ERROR-PROCEDURE.
+           DISPLAY "SOMETHING WENT WRONG. HALTING."
+               STOP RUN.
