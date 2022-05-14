@@ -1,10 +1,11 @@
-      ******************************************************************
+      *****************************************************************
       * Author: MARIA ASPVIK
       * Date: 6 DEC 2021
       * Purpose: JUST FOR FUN
-      ******************************************************************
+      ***************************************************************** 
        IDENTIFICATION DIVISION.
        PROGRAM-ID. SQUID-BINGO-1.
+         AUTHOR. MARIA ASPVIK.
        ENVIRONMENT DIVISION.
        INPUT-OUTPUT SECTION.
        FILE-CONTROL.
@@ -14,70 +15,130 @@
            ORGANIZATION IS SEQUENTIAL.
        DATA DIVISION.
        FILE SECTION.
-        FD BINGO-BOARDS.
-        01 BINGO-BOARD-ROWS.
-           05 BINGO-BOARD-NEXT-ROW                 PIC X(15).
-           05 BINGO-BOARD-LINEBREAK                PIC X.
+       FD BINGO-BOARDS.
+       01 BINGO-BOARD-ROWS.
+          05 BINGO-BOARD-NEXT-ROW       PIC X(15).
       
-        FD BINGO-NUMBERS.
-        01 BINGO-NUMBERS-ROWS.
+       FD BINGO-NUMBERS.
+       01 BINGO-NUMBERS-ROWS.
            05 BINGO-NUMBERS-NEXT-NUMBER            PIC XX.
            05 BINGO-NUMBERS-LINEBREAK              PIC X.
 
        WORKING-STORAGE SECTION.
        01 SWITCHES.
-           05 BINGO-BOARDS-EOF-SWITCH              PIC X VALUE 'N'.
-           05 BINGO-NUMBERS-EOF-SWITCH             PIC X VALUE 'N'.
-           05 BINGO-FOUND-SWITCH                   PIC X VALUE 'N'.
-      *
+          05 BINGO-BOARDS-EOF-SWITCH    PIC X     VALUE 'N'.
+             88 BINGO-BOARDS-END-OF-FILE          VALUE 'Y'.
+          05 BINGO-NUMBERS-EOF-SWITCH   PIC X     VALUE 'N'.
+             88 BINGO-NUMBERS-END-OF-FILE         VALUE 'Y'.
+          05 BINGO-FOUND-SWITCH         PIC X     VALUE 'N'.
+             88 BINGO-FOUND                       VALUE 'Y'.
+      
        01 COUNTERS.
-           05 RECORD-COUNTER                       PIC 9(5) VALUE 99999.
+          05 RECORD-COUNTER             PIC 9(5)  VALUE 99999.
 
        01 BINGO-BOARD-LIST OCCURS 1 TO 99999 TIMES
-           DEPENDING ON RECORD-COUNTER
-           INDEXED BY BINGO-BOARD-LIST-INDEX.
-           05 BINGO-BOARD-LIST-ROWS OCCURS 5 TIMES
-               INDEXED BY BINGO-BOARD-LIST-ROWS-INDEX.
-               10 BINGO-BOARD-LIST-ROW             PIC 9(15) VALUE ZERO.
-               10 BINGO-BOARD-LIST-COLUMNS 
-                  REDEFINES BINGO-BOARD-LIST-ROW
+             DEPENDING ON RECORD-COUNTER
+             INDEXED BY BINGO-BOARD-LIST-INDEX.
+          05 BINGO-BOARD-LIST-ROWS OCCURS 5 TIMES
+                INDEXED BY BINGO-BOARD-LIST-ROWS-INDEX.
+             10 BINGO-BOARD-LIST-ROW    PIC X(15).
+             10 BINGO-BOARD-LIST-COLUMNS
+                   REDEFINES BINGO-BOARD-LIST-ROW
                    OCCURS 5 TIMES
                    INDEXED BY BINGO-BOARD-LIST-COLUMNS-INDEX.
-                   15 BINGO-BOARD-LIST-CELL        PIC 9(3).
+                15 BINGO-BOARD-CELL
+                                        PIC X(2).
+                15 BINGO-BOARD-CELL-FOUND-SWITCH
+                                        PIC X.
+                   88 BINGO-BOARD-CELL-NOT-FOUND VALUE 'N'.
+                   88 BINGO-BOARD-CELL-FOUND     VALUE 'Y'.                     
+
 
        PROCEDURE DIVISION.
        MAIN-PROCEDURE.
-            PERFORM READ-INPUT-BOARDS.
-            DISPLAY "NUMBER OF BINGO BOARDS READ ==> " RECORD-COUNTER.
-            GOBACK.
-      *
+           PERFORM READ-INPUT-BOARDS.
+           DISPLAY "NUMBER OF BINGO BOARDS READ ==> " RECORD-COUNTER.
+           PERFORM READ-DRAW-NUMBER
+           GOBACK.
+      
        READ-INPUT-BOARDS.
            OPEN INPUT BINGO-BOARDS.
            SET BINGO-BOARD-LIST-INDEX TO 1.
            SET BINGO-BOARD-LIST-ROWS-INDEX TO 0.
            SET BINGO-BOARD-LIST-COLUMNS-INDEX TO 1.
-           PERFORM READ-NEXT-BOARD 
-              UNTIL BINGO-BOARDS-EOF-SWITCH = 'Y'.
+           PERFORM READ-NEXT-BOARD UNTIL BINGO-BOARDS-END-OF-FILE.
            CLOSE BINGO-BOARDS.
            SET BINGO-BOARD-LIST-INDEX DOWN BY 1.
            SET RECORD-COUNTER TO BINGO-BOARD-LIST-INDEX.
-      *
+      
        READ-NEXT-BOARD.
            READ BINGO-BOARDS NEXT RECORD
-           AT END MOVE 'Y' TO BINGO-BOARDS-EOF-SWITCH
-           NOT AT END PERFORM INSERT-RECORD.
-      *
+           AT END SET BINGO-BOARDS-END-OF-FILE TO TRUE
+           NOT AT END
+               PERFORM INSERT-RECORD.
+      
        INSERT-RECORD.
            SET BINGO-BOARD-LIST-ROWS-INDEX UP BY 1.
            IF (NOT (BINGO-BOARD-NEXT-ROW = SPACE))
-              MOVE BINGO-BOARD-NEXT-ROW 
-              TO BINGO-BOARD-LIST-ROW(BINGO-BOARD-LIST-INDEX 
+              MOVE BINGO-BOARD-NEXT-ROW
+                 TO BINGO-BOARD-LIST-ROW(BINGO-BOARD-LIST-INDEX
                  BINGO-BOARD-LIST-ROWS-INDEX)
-              IF BINGO-BOARD-LIST-ROWS-INDEX 
-                 IS GREATER THAN OR EQUAL TO 5
+              PERFORM INITIALIZE-FOUND-SWITCHES
+              PERFORM INITIALIZE-CELL-NUMBERS 
+              IF BINGO-BOARD-LIST-ROWS-INDEX
+                 IS GREATER THAN 5
+      *          DISPLAY BINGO-BOARD-LIST(BINGO-BOARD-LIST-INDEX)
                  SET BINGO-BOARD-LIST-INDEX UP BY 1
                  SET BINGO-BOARD-LIST-ROWS-INDEX TO 0
               END-IF
+              
            END-IF.
 
+       INITIALIZE-FOUND-SWITCHES.
+           PERFORM VARYING BINGO-BOARD-LIST-COLUMNS-INDEX
+              FROM 1 BY 1 UNTIL 
+              BINGO-BOARD-LIST-COLUMNS-INDEX IS GREATER THAN 5
+              SET BINGO-BOARD-CELL-NOT-FOUND(
+                  BINGO-BOARD-LIST-INDEX
+                  BINGO-BOARD-LIST-ROWS-INDEX 
+                  BINGO-BOARD-LIST-COLUMNS-INDEX) TO TRUE
+           END-PERFORM.
+
+       INITIALIZE-CELL-NUMBERS.
+           PERFORM VARYING BINGO-BOARD-LIST-COLUMNS-INDEX
+               FROM 1 BY 1 UNTIL 
+               BINGO-BOARD-LIST-COLUMNS-INDEX IS GREATER THAN 5
+               IF (BINGO-BOARD-CELL(
+                 BINGO-BOARD-LIST-INDEX
+                 BINGO-BOARD-LIST-ROWS-INDEX 
+                 BINGO-BOARD-LIST-COLUMNS-INDEX
+               )(1:1) = SPACE)
+               MOVE ZERO TO BINGO-BOARD-CELL(
+                 BINGO-BOARD-LIST-INDEX
+                 BINGO-BOARD-LIST-ROWS-INDEX 
+                 BINGO-BOARD-LIST-COLUMNS-INDEX
+               )(1:1)
+               END-IF
+           END-PERFORM.
+
+       READ-DRAW-NUMBER.
+           OPEN INPUT BINGO-NUMBERS.   
+           PERFORM READ-NEXT-NUMBER UNTIL BINGO-NUMBERS-END-OF-FILE
+                                       OR BINGO-FOUND.
+           IF BINGO-FOUND
+              DISPLAY "BINGO! THE NUMBER WAS " BINGO-NUMBERS-NEXT-NUMBER
+           ELSE
+              DISPLAY "NO BOARD WAS A WINNING ONE." 
+           END-IF.
+           CLOSE BINGO-NUMBERS.
+
+       READ-NEXT-NUMBER.
+           READ BINGO-NUMBERS NEXT RECORD
+           AT END SET BINGO-NUMBERS-END-OF-FILE TO TRUE
+           NOT AT END PERFORM CHECK-NUMBER.
+           
+       CHECK-NUMBER.
+           DISPLAY "THE NEW NUMBER IS ==> " BINGO-NUMBERS-NEXT-NUMBER.
+
        END PROGRAM SQUID-BINGO-1.
+          
